@@ -1,19 +1,26 @@
 # dd-select-tree
 
-## Project setup
+**安装**
+
 ```
-npm install
+npm install 'dd-select-tree'
 ```
 
-### Compiles and hot-reloads for development
+**使用**
+
 ```
-npm run serve
+import treeSelect from 'fxft-tree-select';
+Vue.use(treeSelect);
 ```
 
-### Compiles and minifies for production
-```
-npm run build
-```
+<h1>API<h1>
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+| Property             | Description                               | Type    | Default Value                                                |
+| -------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------ |
+| visible              | 是否显示弹窗                              | Boolean | false                                                        |
+| value（v-model）     | 绑定值[{ label: String,  value: Number }] | Array   | []                                                           |
+| disabledList         | 禁选项[{ label: String,  value: Number }] | Array   | []                                                           |
+| limit                | 限制选择个数（0代表不限制）               | Number  | 0                                                            |
+| replaceFields        | 字段映射                                  | Object  | {isStaff: "isStaff",  isOffice: "isOffice",children: "children",                    label: "name",value: 'id'} |
+| canCheckedDepartment | 是否可选部门                              | Boolean | true                                                         |
+
