@@ -1,7 +1,6 @@
 <template>
   <a-modal
     :visible.sync="visible"
-    :centered="true"
     title="人员选择"
     width="990px"
     :bodyStyle="{ 'height': '400px' }"

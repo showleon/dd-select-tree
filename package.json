@@ -1,10 +1,9 @@
 {
   "name": "dd-select-tree",
   "version": "0.1.0",
-  "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "lib": "vue-cli-service build --target lib --name dd-select-tree --dest lib packages/index.js"
   },
   "dependencies": {
     "ant-design-vue": "^1.7.7",
@@ -21,5 +20,10 @@
     "sass": "^1.26.5",
     "sass-loader": "^8.0.2",
     "vue-template-compiler": "^2.6.11"
-  }
+  },
+  "main": "lib/dd-select-tree.umd.min.js",
+  "private": false,
+  "keyword": "tree-select tree select",
+  "description": "基于ant-desgin-vue的人员选择器，个人使用",
+  "author": "leon"
 }
