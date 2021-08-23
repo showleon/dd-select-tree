@@ -1,30 +1,59 @@
 <template>
   <div class="ddst-check-tree">
-    <a-checkbox class="checkbox-item" :indeterminate="indeterminate" :checked="checkAll" @change="onCheckAllChange">
-        全选
-    </a-checkbox>
-    <div class="check-tree-main">
-        <a-checkbox-groups @change="onChange" v-model="checkedIds" v-if="activeTree.length">
-            <div v-for="(item, index) in activeTree" :key="index">
-                <a-checkbox 
-                    class="checkbox-item"
-                    @click="clickCheckItem(item, $event)"
-                    :value="item.nodeKey"
-                    v-model="item.checked"
-                    :disabled="item.disabled"
-                    v-if="isShowSearchResult(item.isStaff, item.isOffice)"
-                    >
-                    <span class="ddst-checkbox-item ddst-depart" v-if="(item.isOffice || !item.isStaff)">
+    <div v-if="!isSearchMoment">
+        <a-checkbox class="checkbox-item" :indeterminate="indeterminate" :checked="checkAll" @change="onCheckAllChange">
+            全选
+        </a-checkbox>
+        <div class="check-tree-main">
+            <a-checkbox-groups @change="onChange" v-model="checkedIds" v-if="activeTree.length">
+                <div v-for="(item, index) in activeTree" :key="index">
+                    <a-checkbox 
+                        class="checkbox-item"
+                        @click="clickCheckItem(item, $event)"
+                        v-show="(item.isOffice || !item.isStaff) && canCheckedDepartment"
+                        :value="item.nodeKey"
+                        :disabled="item.disabled"
+                        >
+                        <span class="ddst-checkbox-item ddst-depart" >
+                            <span>{{ item.label }}</span>
+                            <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
+                        </span>
+                    </a-checkbox>
+                    <span class="ddst-checkbox-item ddst-depart" v-show="(item.isOffice || !item.isStaff) && !canCheckedDepartment">
                         <span>{{ item.label }}</span>
                         <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
                     </span>
-                    <span class="ddst-checkbox-item" v-else>
-                        <span>{{ item.label }}</span>
-                    </span>
-                </a-checkbox>
-            </div>
-        </a-checkbox-groups>
-        <div class="ddst-no-data" v-else><a-icon type="file-search" />暂无数据</div>
+                    <a-checkbox 
+                        class="checkbox-item"
+                        @click="clickCheckItem(item, $event)"
+                        :value="item.nodeKey"
+                        v-show="(!item.isOffice || item.isStaff)"
+                        :disabled="item.disabled"
+                        >
+                        <span class="ddst-checkbox-item">
+                            <span>{{ item.label }}</span>
+                        </span>
+                    </a-checkbox>
+                </div>
+            </a-checkbox-groups>
+            <div class="ddst-no-data" v-else><a-icon type="file-search" />暂无数据</div>
+        </div>
+    </div>
+    <div v-else>
+        <div v-for="(item, index) in activeTree" :key="index">
+            <a-checkbox 
+                class="checkbox-item"
+                @click="clickCheckItem(item, $event)"
+                :value="item.nodeKey"
+                v-model="item.checked"
+                :disabled="item.disabled"
+                @change="searchOnChange"
+                >
+                <span class="ddst-checkbox-item">
+                    <span>{{ item.label }}</span>
+                </span>
+            </a-checkbox>
+        </div>
     </div>
   </div>
 </template>
@@ -44,22 +73,23 @@ export default {
             type: [Boolean],
             default: false
         },
+        canCheckedDepartment: {
+            type: Boolean,
+            default: true
+        },
     },
     watch: {
         activeTree: {
-            handler(val) {
-                console.log(val.filter(item=>item.checked), 'val.filter(item=>item.checked)')
+            handler(val, old) {
+                this.checkAll = this.checkedIds.length === val.length;
                 this.checkedIds = val.filter(item=>item.checked).map(item=>item.nodeKey)
-                // this.onChange(this.checkedIds)
-                // this.$emit('update:activeTree', val)
-                console.log(this.checkedIds, 'checkedIds')
-            },
-            immediate: true
+                this.indeterminate = !!this.checkedIds.length && this.checkedIds.length < val.length;
+            }
         }
     },
     data() {
         return {
-            indeterminate: true,
+            indeterminate: false,
             checkAll: false,
             checkedIds: [],
         }
@@ -74,22 +104,26 @@ export default {
         },
         onChange(checkedList) {
             console.log(checkedList, 'check')
+            console.log(this.activeTree, 'check 2')
             this.indeterminate = !!checkedList.length && checkedList.length < this.activeTree.length;
             this.checkAll = checkedList.length === this.activeTree.length;
+            this.checkedIds = this.activeTree.filter(item=>item.checked).map(item=>item.nodeKey)
 
-            const checkedArr = this.activeTree
-                .filter(item=>this.checkedIds.find(checked=>checked === item.nodeKey) !== undefined)
-                .map(item=>item)
-            console.log(checkedArr, 'checkedArr')
-            this.$emit('change', checkedArr)
+            this.emitChange()
+        },
+        searchOnChange(checkedList) {
+            console.log(checkedList, 'checkedList')
+            this.checkedIds = this.activeTree.filter(item=>item.checked).map(item=>item.nodeKey)
+            this.emitChange()
         },
         clickCheckItem(item, e) {
             const isChecked = e.target.checked
-            this.activeTree.map(source=>{
-                if ( source.nodeKey === item.nodeKey ) {
-                    this.$set(item, 'checked', isChecked)
-                }
-            })
+            this.$set(item, 'checked', isChecked)
+            // this.activeTree.map(source=>{
+            //     if ( source.nodeKey === item.nodeKey ) {
+            //         this.$set(item, 'checked', isChecked)
+            //     }
+            // })
         },
         onCheckAllChange(e) {
             console.log('check all')
@@ -102,13 +136,16 @@ export default {
                 indeterminate: false,
                 checkAll: e.target.checked,
             });
-            const checkedArr = this.activeTree
-                .filter(item=>this.checkedIds.find(checked=>checked === item.nodeKey))
-                .map(item=>item)
-            this.$emit('change', checkedArr)
+            this.emitChange()
         },
         nextFloor(item) {
             this.$emit('nextFloor', { label: item.label, nodeKey: item.nodeKey })
+        },
+        emitChange() {
+            const checkedArr = this.activeTree
+                .filter(item=>this.checkedIds.find(checked=>checked === item.nodeKey) !== undefined)
+                .map(item=>item)
+            this.$emit('change', checkedArr)
         }
     }
 }

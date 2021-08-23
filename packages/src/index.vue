@@ -32,6 +32,7 @@
                     <CheckTree 
                         :activeTree.sync="activeSelectTree"
                         :isSearchMoment="isSearchMoment"
+                        :canCheckedDepartment="canCheckedDepartment"
                         @nextFloor="nextFloorChange"
                         @change="checkTreeChange"></CheckTree>
                 </div>
@@ -85,6 +86,14 @@ export default {
         checkStrictly: {
             type: Boolean,
             default: true
+        },
+        showCheckedStrategy: {
+            type: String,
+            default: 'SHOW_ALL'
+        },
+        canCheckedDepartment: {
+            type: Boolean,
+            default: true
         }
     },
     components: {
@@ -104,11 +113,6 @@ export default {
         prop: 'value', // 绑定的值，通过父组件传递
         event: 'update', // 自定义事件名
     },
-    computed: {
-        checkedGroup() {
-            return this.selected.map(item=> item.value)
-        }
-    },
     data() {
         return {
             allTree: [],
@@ -117,7 +121,8 @@ export default {
             selected: [],
             breadcrumbActive: undefined,
             breadcrumbList: [],
-            isSearchMoment: false
+            isSearchMoment: false,
+            maps: [{nodeKey: 1, label: '是', value: 1},{nodeKey: 2, label: '是', value: 2}]
         }
     },
     mounted() {
@@ -231,10 +236,11 @@ export default {
                 timer = setTimeout(()=>{
                     _THIS.changeBreadcrumb({ label: '所有', nodeKey: undefined })
                     if ( val.length > 0 ) {
-                        this.isSearchMoment = true
+                        _THIS.isSearchMoment = true
                         _THIS.activeSelectTree = _THIS.flatState.filter(obj=> obj.label.indexOf(val) !== -1 && (obj.isStaff || !obj.isOffice) ).map(item=>item)
                     } else {
-                        this.isSearchMoment = false
+                        _THIS.isSearchMoment = false
+                        _THIS.activeSelectTree = _THIS.findDepartmentChild(_THIS.breadcrumbActive)
                     }
                     clearTimeout(timer)
                     timer = null
@@ -246,6 +252,7 @@ export default {
         },
         changeBreadcrumb({ label, nodeKey }) {
             console.log(label, nodeKey, 222)
+
             if ( nodeKey === undefined ) {
                 this.breadcrumbList = []
                 this.breadcrumbActive = nodeKey;
@@ -259,10 +266,11 @@ export default {
             } else {
                 this.breadcrumbList = this.breadcrumbList.slice(0, this.breadcrumbList.findIndex(item => item.nodeKey === nodeKey)+1)
             }
-            
+
             this.breadcrumbActive = nodeKey;
             this.activeSelectTree = this.findDepartmentChild(nodeKey)
-
+            // console.log(JSON.stringify(this.findDepartmentChild(nodeKey)))
+            
             this.setTreeChecked()
         },
         findDepartmentChild(nodeKey) {
@@ -277,13 +285,24 @@ export default {
         },
         setTreeChecked() {
             console.log(this.selected, 'setTreeChecked')
+            
             this.selected.map(selected=>{
                 this.$set(this.flatState[selected.nodeKey], 'checked', true)
             })
             this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
+            // const departLength = this.flatState.filter(item=>item.isOffice || !item.isStaff)
+            // const staffLength = this.flatState.filter(item=>!item.isOffice || item.isStaff)
+            // const allLength = this.flatState.length
+            // const maps = {
+            //     'SHOW_PARTMENT': departLength,
+            //     'SHOW_STAFF': staffLength,
+            //     'SHOW_ALL': allLength,
+            // }
+            // const couldSelectedLength = maps[this.showCheckedStrategy]
+            // this.indeterminate = !!this.selected.length && this.selected.length < couldSelectedLength;
         },
         setTreeDisabled() {
-            console.log(this.selected, 'setTreeChecked')
+            console.log(this.selected, 'setTreeDisabled')
             this.disabledList.map(disabled=>{
                 this.$set(this.flatState[disabled.nodeKey], 'disabled', true)
             })
@@ -297,9 +316,9 @@ export default {
                 this.updateTreeUp(nodeKey); // propagate up
                 this.updateTreeDown(node, {checked, indeterminate: false});
             })
-            this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
+            // this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
             console.log(this.activeSelectTree)
-            this.selected = checkList
+            this.selected = this.getCheckedNodes()
         },
         delPreventDefault(item, e) {
             e.preventDefault();
@@ -315,7 +334,7 @@ export default {
                 const selectItem = this.flatState[item.nodeKey]
                 selected.push({ label: selectItem.label, value: selectItem.value })
             })
-            if ( this.selected.length >= this.limit ) {
+            if ( this.limit && this.selected.length >= this.limit ) {
                 message.error(`已选数量超过上限，最多可选择${this.limit}个`)
                 return
             }
