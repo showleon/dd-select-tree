@@ -4,12 +4,14 @@
     <ddSelectTree
       :visible.sync="visible"
       v-model="value"
+      :data="treeData"
       @change="onChange">
     </ddSelectTree>
   </div>
 </template>
 
 <script>
+import { jsonData } from '../data.js'
 export default {
   name: 'Home',
   components: {
@@ -17,8 +19,14 @@ export default {
   data() {
     return {
       visible: true,
-      value: []
+      value: [],
+      treeData: []
     }
+  },
+  mounted() {
+    setTimeout(()=>{
+      this.treeData = jsonData
+    }, 200)
   },
   methods: {
     onChange(arr) {

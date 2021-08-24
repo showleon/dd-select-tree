@@ -49,7 +49,6 @@
 </template>
 
 <script>
-import { jsonData } from '../data.js'
 import CheckTree from './CheckTree'
 import { message } from 'ant-design-vue';
 export default {
@@ -112,6 +111,12 @@ export default {
             },
             immediate: true,
         },
+        data: {
+            handler(arr) {
+                this.init()
+            },
+            immediate: true,
+        }
     },
     model: {
         prop: 'value', // 绑定的值，通过父组件传递
@@ -130,7 +135,7 @@ export default {
         }
     },
     mounted() {
-        this.init()
+        
     },
     methods: {
         init() {
