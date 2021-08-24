@@ -4,56 +4,63 @@
         <a-checkbox class="checkbox-item" :indeterminate="indeterminate" :checked="checkAll" @change="onCheckAllChange">
             全选
         </a-checkbox>
-        <div class="check-tree-main">
-            <a-checkbox-groups @change="onChange" v-model="checkedIds" v-if="activeTree.length">
+        <perfect-scrollbar>
+            <div class="check-tree-main">
+                <a-checkbox-groups @change="onChange" v-model="checkedIds" v-if="activeTree.length">
+                    <div v-for="(item, index) in activeTree" :key="index">
+                        <a-checkbox 
+                            class="checkbox-item"
+                            @click="clickCheckItem(item, $event)"
+                            :indeterminate="item.indeterminate"
+                            v-show="(item.isOffice || !item.isStaff) && canCheckedDepartment"
+                            :value="item.nodeKey"
+                            :disabled="item.disabled"
+                            >
+                            <span class="ddst-checkbox-item ddst-depart" >
+                                <span>{{ item.label }}</span>
+                                <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
+                            </span>
+                        </a-checkbox>
+                        <span class="ddst-checkbox-item ddst-depart" v-show="(item.isOffice || !item.isStaff) && !canCheckedDepartment">
+                            <span>{{ item.label }}</span>
+                            <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
+                        </span>
+                        <a-checkbox 
+                            class="checkbox-item"
+                            @click="clickCheckItem(item, $event)"
+                            :value="item.nodeKey"
+                            v-show="(!item.isOffice || item.isStaff)"
+                            :disabled="item.disabled"
+                            >
+                            <span class="ddst-checkbox-item">
+                                <span>{{ item.label }}</span>
+                            </span>
+                        </a-checkbox>
+                    </div>
+                </a-checkbox-groups>
+                <div class="ddst-no-data" v-else><a-icon type="file-search" />暂无数据</div>
+            </div>
+        </perfect-scrollbar>
+    </div>
+    <div v-else>
+        <perfect-scrollbar>
+            <div class="check-tree-main">
                 <div v-for="(item, index) in activeTree" :key="index">
                     <a-checkbox 
                         class="checkbox-item"
                         @click="clickCheckItem(item, $event)"
-                        v-show="(item.isOffice || !item.isStaff) && canCheckedDepartment"
                         :value="item.nodeKey"
+                        v-model="item.checked"
                         :disabled="item.disabled"
-                        >
-                        <span class="ddst-checkbox-item ddst-depart" >
-                            <span>{{ item.label }}</span>
-                            <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
-                        </span>
-                    </a-checkbox>
-                    <span class="ddst-checkbox-item ddst-depart" v-show="(item.isOffice || !item.isStaff) && !canCheckedDepartment">
-                        <span>{{ item.label }}</span>
-                        <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
-                    </span>
-                    <a-checkbox 
-                        class="checkbox-item"
-                        @click="clickCheckItem(item, $event)"
-                        :value="item.nodeKey"
-                        v-show="(!item.isOffice || item.isStaff)"
-                        :disabled="item.disabled"
+                        @change="searchOnChange"
                         >
                         <span class="ddst-checkbox-item">
                             <span>{{ item.label }}</span>
                         </span>
                     </a-checkbox>
                 </div>
-            </a-checkbox-groups>
-            <div class="ddst-no-data" v-else><a-icon type="file-search" />暂无数据</div>
-        </div>
-    </div>
-    <div v-else>
-        <div v-for="(item, index) in activeTree" :key="index">
-            <a-checkbox 
-                class="checkbox-item"
-                @click="clickCheckItem(item, $event)"
-                :value="item.nodeKey"
-                v-model="item.checked"
-                :disabled="item.disabled"
-                @change="searchOnChange"
-                >
-                <span class="ddst-checkbox-item">
-                    <span>{{ item.label }}</span>
-                </span>
-            </a-checkbox>
-        </div>
+            </div>
+        </perfect-scrollbar>
     </div>
   </div>
 </template>
@@ -117,7 +124,10 @@ export default {
             this.emitChange()
         },
         clickCheckItem(item, e) {
+            if (e.target.disabled) return;
             const isChecked = e.target.checked
+            console.log(e.target.checked, e.target.indeterminate)
+            // const isChecked = !e.target.checked && !e.target.indeterminate
             this.$set(item, 'checked', isChecked)
         },
         onCheckAllChange(e) {
@@ -127,7 +137,7 @@ export default {
                 this.$set(item, 'checked', e.target.checked)
             })
             Object.assign(this, {
-                checkedIds: e.target.checked ? checkedTree.map(item=>item.nodeKey) : [],
+                checkedIds: e.target.checked ? checkedTree.filter(item=>!item.disabled).map(item=>item.nodeKey) : [],
                 indeterminate: false,
                 checkAll: e.target.checked,
             });
@@ -160,8 +170,8 @@ export default {
     }
     .check-tree-main {
         height: 220px;
-        overflow-x: hidden;
-        overflow-y: auto;
+        // overflow-x: hidden;
+        // overflow-y: auto;
     }
     .ant-checkbox-group {
         width: 100%;

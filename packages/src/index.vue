@@ -10,39 +10,43 @@
     @cancel="emitCancel">
         <div class="ddst-box">
             <div class="ddst-left ddst-mode">
-            <div class="search-box">
-                <a-input @input="searchInput" placeholder="请搜索"></a-input>
-            </div>
-            <div class="ddst-select-main">
-                <div class="ddst-select-breabrumb">
-                    <a-breadcrumb v-show="!isSearchMoment">
-                        <a-breadcrumb-item>
-                            <span @click="changeBreadcrumb({ label: '所有', nodeKey: undefined })" :class="[ breadcrumbActive === undefined ? 'disabled-color' : 'ddst-breadcrumb-item']">所有</span>
-                        </a-breadcrumb-item>
-                        <a-breadcrumb-item 
-                            v-for="(item, index) in breadcrumbList" :key="index">
-                            <span @click="changeBreadcrumb(item)" :class="[ breadcrumbActive === item.nodeKey ? 'disabled-color' : 'ddst-breadcrumb-item']">
-                                {{ item.label }}
-                            </span>
-                        </a-breadcrumb-item>
-                    </a-breadcrumb>
+                <div class="search-box">
+                    <a-input @input="searchInput" placeholder="请搜索"></a-input>
                 </div>
-                <div class="ddst-select-tree">
-                    <CheckTree 
-                        :activeTree.sync="activeSelectTree"
-                        :isSearchMoment="isSearchMoment"
-                        :canCheckedDepartment="canCheckedDepartment"
-                        :showCheckedStrategy="showCheckedStrategy"
-                        @nextFloor="nextFloorChange"
-                        @change="checkTreeChange"></CheckTree>
+                <div class="ddst-select-main">
+                    <div class="ddst-select-breabrumb">
+                        <a-breadcrumb v-show="!isSearchMoment">
+                            <a-breadcrumb-item>
+                                <span @click="changeBreadcrumb({ label: '所有', nodeKey: undefined })" :class="[ breadcrumbActive === undefined ? 'disabled-color' : 'ddst-breadcrumb-item']">所有</span>
+                            </a-breadcrumb-item>
+                            <a-breadcrumb-item 
+                                v-for="(item, index) in breadcrumbList" :key="index">
+                                <span @click="changeBreadcrumb(item)" :class="[ breadcrumbActive === item.nodeKey ? 'disabled-color' : 'ddst-breadcrumb-item']">
+                                    {{ item.label }}
+                                </span>
+                            </a-breadcrumb-item>
+                        </a-breadcrumb>
+                    </div>
+                    <div class="ddst-select-tree">
+                        <CheckTree 
+                            :activeTree.sync="activeSelectTree"
+                            :isSearchMoment="isSearchMoment"
+                            :canCheckedDepartment="canCheckedDepartment"
+                            :showCheckedStrategy="showCheckedStrategy"
+                            @nextFloor="nextFloorChange"
+                            @change="checkTreeChange"></CheckTree>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="ddst-right ddst-mode">
-            <a-tag closable @close="delPreventDefault(item, $event)" v-for="(item, index) in selected" :key="index">
-                {{ item.label }}
-            </a-tag>
-        </div>
+            <div class="ddst-right ddst-mode">
+                <perfect-scrollbar>
+                    <div>
+                        <a-tag closable @close="delPreventDefault(item, $event)" v-for="(item, index) in selected" :key="index">
+                            {{ item.label }}
+                        </a-tag>
+                    </div>
+                </perfect-scrollbar>
+            </div>
         </div>
       
   </a-modal>
@@ -88,7 +92,7 @@ export default {
         },
         checkStrictly: {
             type: Boolean,
-            default: true
+            default: false
         },
         showCheckedStrategy: {
             type: String,
@@ -141,7 +145,8 @@ export default {
         init() {
             this.allTree = this.data
             this.flatState = this.compileFlatState()
-            
+            this.rebuildTree()
+
             this.resetTree()
             this.setTreeChecked()
             this.setTreeDisabled()
@@ -190,18 +195,20 @@ export default {
 
             const node = this.flatState[nodeKey];
             const parent = this.flatState[parentKey];
-            if (node.checked == parent.checked && node.indeterminate == parent.indeterminate) return; // no need to update upwards
+            const parentAllChild = this.flatState.filter(item=>item.parent === parent.nodeKey).map(item=>item)
+            if (node.checked == parent.checked && node.indeterminate == parent.indeterminate) return;
+            console.log(parentKey, this.flatState[nodeKey], this.flatState[parentKey], '进来了')
             if (node.checked == true) {
-                // #6121
-                this.$set(parent, 'checked', parent[this.replaceFields.children].every(node => node.checked || node.disabled !== undefined ));
+                this.$set(parent, 'checked', parentAllChild.every(node => node.checked || node.disabled !== undefined ));
                 this.$set(parent, 'indeterminate', !parent.checked);
             } else {
                 this.$set(parent, 'checked', false);
-                this.$set(parent, 'indeterminate', parent[this.replaceFields.children].some(node => node.checked || node.indeterminate));
+                this.$set(parent, 'indeterminate', parentAllChild.some(node => node.checked || node.indeterminate));
             }
             this.updateTreeUp(parentKey);
         },
         updateTreeDown(node, changes = {}) {
+            const parentAllChild = this.flatState.filter(item=>item.parent === node.nodeKey).map(item=>item)
             if (this.checkStrictly) return;
             for (let key in changes) {
                 if( key === 'checked' && node.disabled ){
@@ -211,8 +218,8 @@ export default {
                 }
             }
 
-            if (node[this.replaceFields.children]) {
-                node[this.replaceFields.children].forEach(child => {
+            if (parentAllChild) {
+                parentAllChild.forEach(child => {
                     this.updateTreeDown(child, changes);
                 });
             }
@@ -221,13 +228,12 @@ export default {
             const checkedNodes = this.getCheckedNodes();
             checkedNodes.forEach(node => {
                 this.updateTreeDown(node, {checked: true});
-                // propagate upwards
                 const parentKey = this.flatState[node.nodeKey].parent;
                 if (!parentKey && parentKey !== 0) return;
                 const parent = this.flatState[parentKey];
                 const childHasCheckSetter = typeof node.checked != 'undefined' && node.checked;
                 if (childHasCheckSetter && parent.checked != node.checked) {
-                    this.updateTreeUp(node.nodeKey); // update tree upwards
+                    this.updateTreeUp(node.nodeKey);
                 }
             });
         },
@@ -319,14 +325,16 @@ export default {
         },
         checkTreeChange(checkList, isCheckAll) {
             console.log(checkList, 'checkList')
-            checkList.map(node=>{
-                let nodeKey = node.nodeKey
-                let checked = node.checked
-                this.updateTreeUp(nodeKey); // propagate up
-                this.updateTreeDown(node, {checked, indeterminate: false});
+            checkList.map(checkItem=>{
+                let nodeKey = checkItem.nodeKey
+                let checked = checkItem.checked
+                const node = this.flatState[nodeKey];
+                this.$set(node, 'checked', checked);
+                this.$set(node, 'indeterminate', false);
+                // this.updateTreeUp(nodeKey); // propagate up
+                // this.updateTreeDown(node, {checked, indeterminate: false});
             })
-            // this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
-            console.log(this.activeSelectTree)
+            this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
             this.selected = this.getCheckedNodes()
         },
         delPreventDefault(item, e) {
