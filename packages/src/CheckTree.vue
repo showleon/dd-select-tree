@@ -76,7 +76,7 @@ export default {
         canCheckedDepartment: {
             type: Boolean,
             default: true
-        },
+        }
     },
     watch: {
         activeTree: {
@@ -119,11 +119,6 @@ export default {
         clickCheckItem(item, e) {
             const isChecked = e.target.checked
             this.$set(item, 'checked', isChecked)
-            // this.activeTree.map(source=>{
-            //     if ( source.nodeKey === item.nodeKey ) {
-            //         this.$set(item, 'checked', isChecked)
-            //     }
-            // })
         },
         onCheckAllChange(e) {
             console.log('check all')
@@ -145,7 +140,8 @@ export default {
             const checkedArr = this.activeTree
                 .filter(item=>this.checkedIds.find(checked=>checked === item.nodeKey) !== undefined)
                 .map(item=>item)
-            this.$emit('change', checkedArr)
+            this.$emit('change', checkedArr, this.checkAll)
+            
         }
     }
 }

@@ -32,6 +32,7 @@
                         :activeTree.sync="activeSelectTree"
                         :isSearchMoment="isSearchMoment"
                         :canCheckedDepartment="canCheckedDepartment"
+                        :showCheckedStrategy="showCheckedStrategy"
                         @nextFloor="nextFloorChange"
                         @change="checkTreeChange"></CheckTree>
                 </div>
@@ -59,6 +60,10 @@ export default {
             default: false
         },
         value: {
+            type: [Array],
+            default: () => []
+        },
+        data: {
             type: [Array],
             default: () => []
         },
@@ -129,7 +134,7 @@ export default {
     },
     methods: {
         init() {
-            this.allTree = jsonData
+            this.allTree = this.data
             this.flatState = this.compileFlatState()
             
             this.resetTree()
@@ -307,7 +312,7 @@ export default {
             })
             this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
         },
-        checkTreeChange(checkList) {
+        checkTreeChange(checkList, isCheckAll) {
             console.log(checkList, 'checkList')
             checkList.map(node=>{
                 let nodeKey = node.nodeKey
