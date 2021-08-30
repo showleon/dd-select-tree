@@ -426,4 +426,7 @@ export default {
         color: #666;
         cursor: default
     }
+    .ant-modal-title {
+        color: #fff;
+    }
 </style>
