@@ -1,7 +1,7 @@
 <template>
   <div class="ddst-check-tree">
     <div v-if="!isSearchMoment">
-        <a-checkbox class="checkbox-item" :indeterminate="indeterminate" :checked="checkAll" @change="onCheckAllChange">
+        <a-checkbox class="checkbox-item" v-if="activeTree.length" :indeterminate="indeterminate" :checked="checkAll" @change="onCheckAllChange">
             全选
         </a-checkbox>
         <perfect-scrollbar>
