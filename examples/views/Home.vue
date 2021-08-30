@@ -5,6 +5,7 @@
       :visible.sync="visible"
       v-model="value"
       :data="treeData"
+      :canCheckedDepartment="true"
       @change="onChange">
     </ddSelectTree>
   </div>

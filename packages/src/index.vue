@@ -3,6 +3,7 @@
     :visible.sync="visible"
     title="人员选择"
     width="990px"
+    :maskClosable="false"
     :bodyStyle="{ 'height': '400px' }"
     ok-text="确定"
     cancel-text="取消"
@@ -165,6 +166,14 @@ export default {
             let keyCounter = 0;
             let { children, isStaff, isOffice, label, value } = this.replaceFields;
             const flatTree = [];
+            function itemType(isOfficeBoo, isStaffBoo) {
+                if ( !isOfficeBoo ||  isStaffBoo ) {
+                    return 'staff'
+                }
+                if ( isOfficeBoo ||  !isStaffBoo ) {
+                    return 'office'
+                }
+            }
             function flattenChildren(node, parent) {
                 node.nodeKey = keyCounter++;
                 flatTree[node.nodeKey] = { 
@@ -172,8 +181,7 @@ export default {
                     nodeKey: node.nodeKey,
                     label: node[label],
                     value: node[value],
-                    isOffice: node[isOffice],
-                    isStaff: node[isStaff] };
+                    type: itemType(node[isOffice], node[isStaff])};
                 if (typeof parent != 'undefined') {
                     flatTree[node.nodeKey].parent = parent.nodeKey;
                     flatTree[parent.nodeKey][children].push(node.nodeKey);
@@ -252,7 +260,7 @@ export default {
                     _THIS.changeBreadcrumb({ label: '所有', nodeKey: undefined })
                     if ( val.length > 0 ) {
                         _THIS.isSearchMoment = true
-                        _THIS.activeSelectTree = _THIS.flatState.filter(obj=> obj.label.indexOf(val) !== -1 && (obj.isStaff || !obj.isOffice) ).map(item=>item)
+                        _THIS.activeSelectTree = _THIS.flatState.filter(obj=> obj.label.indexOf(val) !== -1 && obj.type === 'staff' ).map(item=>item)
                     } else {
                         _THIS.isSearchMoment = false
                         _THIS.activeSelectTree = _THIS.findDepartmentChild(_THIS.breadcrumbActive)
@@ -284,7 +292,6 @@ export default {
 
             this.breadcrumbActive = nodeKey;
             this.activeSelectTree = this.findDepartmentChild(nodeKey)
-            // console.log(JSON.stringify(this.findDepartmentChild(nodeKey)))
             
             this.setTreeChecked()
         },
@@ -305,16 +312,6 @@ export default {
                 this.$set(this.flatState[selected.nodeKey], 'checked', true)
             })
             this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
-            // const departLength = this.flatState.filter(item=>item.isOffice || !item.isStaff)
-            // const staffLength = this.flatState.filter(item=>!item.isOffice || item.isStaff)
-            // const allLength = this.flatState.length
-            // const maps = {
-            //     'SHOW_PARTMENT': departLength,
-            //     'SHOW_STAFF': staffLength,
-            //     'SHOW_ALL': allLength,
-            // }
-            // const couldSelectedLength = maps[this.showCheckedStrategy]
-            // this.indeterminate = !!this.selected.length && this.selected.length < couldSelectedLength;
         },
         setTreeDisabled() {
             console.log(this.selected, 'setTreeDisabled')
@@ -331,10 +328,13 @@ export default {
                 const node = this.flatState[nodeKey];
                 this.$set(node, 'checked', checked);
                 this.$set(node, 'indeterminate', false);
+                // 部门和人员关联性功能 no complete
                 // this.updateTreeUp(nodeKey); // propagate up
                 // this.updateTreeDown(node, {checked, indeterminate: false});
             })
-            this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
+            if ( !this.isSearchMoment ) {
+                this.activeSelectTree = this.findDepartmentChild(this.breadcrumbActive)
+            }
             this.selected = this.getCheckedNodes()
         },
         delPreventDefault(item, e) {

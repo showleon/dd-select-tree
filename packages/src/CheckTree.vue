@@ -12,24 +12,27 @@
                             class="checkbox-item"
                             @click="clickCheckItem(item, $event)"
                             :indeterminate="item.indeterminate"
-                            v-show="(item.isOffice || !item.isStaff) && canCheckedDepartment"
+                            v-show="item.type === 'office' && canCheckedDepartment"
                             :value="item.nodeKey"
                             :disabled="item.disabled"
                             >
-                            <span class="ddst-checkbox-item ddst-depart" >
+                            <span class="ddst-checkbox-item ddst-depart">
                                 <span>{{ item.label }}</span>
                                 <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
                             </span>
                         </a-checkbox>
-                        <span class="ddst-checkbox-item ddst-depart" v-show="(item.isOffice || !item.isStaff) && !canCheckedDepartment">
-                            <span>{{ item.label }}</span>
-                            <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
-                        </span>
+                        <div class="checkbox-item" v-show="item.type === 'office' && !canCheckedDepartment">
+                            <span></span>
+                            <span class="ddst-checkbox-item ddst-depart">
+                                <span>{{ item.label }}</span>
+                                <a-button icon="cluster" class="next-btn" @click.stop="nextFloor(item)" :disabled="item.checked">下级</a-button>
+                            </span>
+                        </div>
                         <a-checkbox 
                             class="checkbox-item"
                             @click="clickCheckItem(item, $event)"
                             :value="item.nodeKey"
-                            v-show="(!item.isOffice || item.isStaff)"
+                            v-show="item.type === 'staff'"
                             :disabled="item.disabled"
                             >
                             <span class="ddst-checkbox-item">
@@ -45,20 +48,23 @@
     <div v-else>
         <perfect-scrollbar>
             <div class="check-tree-main">
-                <div v-for="(item, index) in activeTree" :key="index">
-                    <a-checkbox 
-                        class="checkbox-item"
-                        @click="clickCheckItem(item, $event)"
-                        :value="item.nodeKey"
-                        v-model="item.checked"
-                        :disabled="item.disabled"
-                        @change="searchOnChange"
-                        >
-                        <span class="ddst-checkbox-item">
-                            <span>{{ item.label }}</span>
-                        </span>
-                    </a-checkbox>
+                <div v-if="activeTree.length">
+                    <div v-for="(item, index) in activeTree" :key="index">
+                        <a-checkbox 
+                            class="checkbox-item"
+                            @click="clickCheckItem(item, $event)"
+                            :value="item.nodeKey"
+                            v-model="item.checked"
+                            :disabled="item.disabled"
+                            @change="searchOnChange"
+                            >
+                            <span class="ddst-checkbox-item">
+                                <span>{{ item.label }}</span>
+                            </span>
+                        </a-checkbox>
+                    </div>
                 </div>
+                <div class="ddst-no-data" v-else><a-icon type="file-search" />暂无数据</div>
             </div>
         </perfect-scrollbar>
     </div>
@@ -102,16 +108,7 @@ export default {
         }
     },
     methods: {
-        isShowSearchResult(isStaff, isOffice) {
-            if ( this.isSearchMoment ) {
-                return isStaff || !isOffice
-            } else {
-                return true
-            }
-        },
         onChange(checkedList) {
-            console.log(checkedList, 'check')
-            console.log(this.activeTree, 'check 2')
             this.indeterminate = !!checkedList.length && checkedList.length < this.activeTree.length;
             this.checkAll = checkedList.length === this.activeTree.length;
             this.checkedIds = this.activeTree.filter(item=>item.checked).map(item=>item.nodeKey)
@@ -126,18 +123,27 @@ export default {
         clickCheckItem(item, e) {
             if (e.target.disabled) return;
             const isChecked = e.target.checked
-            console.log(e.target.checked, e.target.indeterminate)
             // const isChecked = !e.target.checked && !e.target.indeterminate
             this.$set(item, 'checked', isChecked)
         },
         onCheckAllChange(e) {
             console.log('check all')
             const checkedTree = this.activeTree
+            const filterCheck = (item) => {
+                if ( !this.canCheckedDepartment ) {
+                    return item.type === 'staff' && !item.disabled
+                } else {
+                    return !item.disabled
+                }
+            }
             checkedTree.map(item=>{
-                this.$set(item, 'checked', e.target.checked)
+                if ( filterCheck(item) ) {
+                    this.$set(item, 'checked', e.target.checked)
+                }
             })
+            
             Object.assign(this, {
-                checkedIds: e.target.checked ? checkedTree.filter(item=>!item.disabled).map(item=>item.nodeKey) : [],
+                checkedIds: e.target.checked ? checkedTree.filter(item=>{ return filterCheck(item) }).map(item=>item.nodeKey) : [],
                 indeterminate: false,
                 checkAll: e.target.checked,
             });
@@ -181,6 +187,7 @@ export default {
         display: flex;
         align-items: center;
         box-sizing: border-box;
+        width: 100%;
         span:nth-child(2) {
             flex: 1;
         }
