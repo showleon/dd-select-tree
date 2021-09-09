@@ -9,7 +9,7 @@ npm install 'dd-select-tree'
 **使用**
 
 ```
-import treeSelect from 'fxft-tree-select';
+import treeSelect from 'dd-tree-select';
 Vue.use(treeSelect);
 ```
 
